@@ -6,6 +6,7 @@ const {
   getProjectById,
   updateProject,
   deleteProject,
+  getEligibleUsersForProject,
   addMember,
   removeMember,
 } = require("../Controllers/projectController");
@@ -18,12 +19,14 @@ router.use(authMiddleware);
 // Project CRUD operations
 router.post("/", createProject);
 router.get("/", getUserProjects);
+
+// Member management (Admin only) — register before GET /:projectId
+router.get("/:projectId/eligible-members", getEligibleUsersForProject);
+router.post("/:projectId/members", addMember);
+router.delete("/:projectId/members/:memberId", removeMember);
+
 router.get("/:projectId", getProjectById);
 router.put("/:projectId", updateProject);
 router.delete("/:projectId", deleteProject);
-
-// Member management (Admin only)
-router.post("/:projectId/members", addMember);
-router.delete("/:projectId/members/:memberId", removeMember);
 
 module.exports = router;

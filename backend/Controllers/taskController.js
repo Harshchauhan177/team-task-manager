@@ -1,6 +1,9 @@
 const Task = require("../Models/Task");
 const Project = require("../Models/Project");
 
+const ALLOWED_PRIORITY = ["Low", "Medium", "High"];
+const ALLOWED_STATUS = ["To Do", "In Progress", "Done"];
+
 // Create a new task (Admin only within a project)
 const createTask = async (req, res) => {
   try {
@@ -9,6 +12,10 @@ const createTask = async (req, res) => {
 
     if (!title || !projectId) {
       return res.status(400).json({ message: "Title and project ID are required" });
+    }
+
+    if (priority && !ALLOWED_PRIORITY.includes(priority)) {
+      return res.status(400).json({ message: "Priority must be Low, Medium, or High" });
     }
 
     const project = await Project.findById(projectId);
@@ -26,14 +33,38 @@ const createTask = async (req, res) => {
       return res.status(403).json({ message: "Only project admins can create tasks" });
     }
 
+    let assigneeId =
+      assignedTo === "" || assignedTo === undefined || assignedTo === null
+        ? undefined
+        : assignedTo;
+
+    if (assigneeId) {
+      const assigneeIsMember = project.members.some(
+        (m) => m.user.toString() === assigneeId.toString()
+      );
+      if (!assigneeIsMember) {
+        return res
+          .status(400)
+          .json({ message: "Assignee must be a member of this project" });
+      }
+    }
+
+    let parsedDue;
+    if (dueDate) {
+      parsedDue = new Date(dueDate);
+      if (Number.isNaN(parsedDue.getTime())) {
+        return res.status(400).json({ message: "Invalid due date" });
+      }
+    }
+
     const task = new Task({
       title,
       description,
       project: projectId,
-      assignedTo,
+      assignedTo: assigneeId,
       createdBy: userId,
       priority,
-      dueDate,
+      dueDate: parsedDue,
     });
 
     await task.save();
@@ -70,7 +101,15 @@ const getProjectTasks = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const tasks = await Task.find({ project: projectId })
+    const userMember = project.members.find(
+      (member) => member.user.toString() === userId
+    );
+    const isAdmin = userMember?.role === "Admin";
+    const taskQuery = isAdmin
+      ? { project: projectId }
+      : { project: projectId, assignedTo: userId };
+
+    const tasks = await Task.find(taskQuery)
       .populate("assignedTo", "name email")
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
@@ -107,6 +146,21 @@ const getTaskById = async (req, res) => {
 
     if (!isMember) {
       return res.status(403).json({ message: "Access denied" });
+    }
+
+    const userMember = project.members.find(
+      (member) => member.user.toString() === userId
+    );
+    const isAdmin = userMember?.role === "Admin";
+    const isAssigned =
+      task.assignedTo && task.assignedTo._id
+        ? task.assignedTo._id.toString() === userId
+        : task.assignedTo?.toString() === userId;
+
+    if (!isAdmin && !isAssigned) {
+      return res
+        .status(403)
+        .json({ message: "You can only view tasks assigned to you" });
     }
 
     res.status(200).json({
@@ -148,17 +202,48 @@ const updateTask = async (req, res) => {
       return res.status(403).json({ message: "Only admins or assigned users can update this task" });
     }
 
+    if (status && !ALLOWED_STATUS.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+    if (priority && !ALLOWED_PRIORITY.includes(priority)) {
+      return res.status(400).json({ message: "Invalid priority" });
+    }
+
     // Members can only update status, not other fields
     if (!isAdmin && isAssigned) {
-      task.status = status || task.status;
+      if (status) task.status = status;
     } else {
       // Admin can update all fields
-      task.title = title || task.title;
-      task.description = description || task.description;
-      task.status = status || task.status;
-      task.priority = priority || task.priority;
-      task.dueDate = dueDate || task.dueDate;
-      task.assignedTo = assignedTo || task.assignedTo;
+      if (title !== undefined) task.title = title;
+      if (description !== undefined) task.description = description;
+      if (status) task.status = status;
+      if (priority) task.priority = priority;
+      if (dueDate !== undefined) {
+        if (dueDate === "" || dueDate === null) {
+          task.dueDate = undefined;
+        } else {
+          const d = new Date(dueDate);
+          if (Number.isNaN(d.getTime())) {
+            return res.status(400).json({ message: "Invalid due date" });
+          }
+          task.dueDate = d;
+        }
+      }
+      if (assignedTo !== undefined) {
+        if (assignedTo === "" || assignedTo === null) {
+          task.assignedTo = undefined;
+        } else {
+          const assigneeIsMember = project.members.some(
+            (m) => m.user.toString() === assignedTo.toString()
+          );
+          if (!assigneeIsMember) {
+            return res
+              .status(400)
+              .json({ message: "Assignee must be a member of this project" });
+          }
+          task.assignedTo = assignedTo;
+        }
+      }
     }
 
     task.updatedAt = new Date();
@@ -211,7 +296,15 @@ const getUserAssignedTasks = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const tasks = await Task.find({ assignedTo: userId })
+    const memberProjects = await Project.find({
+      "members.user": userId,
+    }).select("_id");
+    const projectIds = memberProjects.map((p) => p._id);
+
+    const tasks = await Task.find({
+      assignedTo: userId,
+      project: { $in: projectIds },
+    })
       .populate("assignedTo", "name email")
       .populate("createdBy", "name email")
       .populate("project", "name")

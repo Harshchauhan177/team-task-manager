@@ -1,6 +1,35 @@
 const Task = require("../Models/Task");
 const Project = require("../Models/Project");
 
+/** Tasks a user may see: all tasks in projects where they are Admin; only assigned tasks where they are Member. */
+function buildVisibleTaskFilterForUser(projects, userId) {
+  const adminProjectIds = [];
+  const memberOnlyProjectIds = [];
+
+  for (const p of projects) {
+    const member = p.members.find((m) => m.user.toString() === userId);
+    if (!member) continue;
+    if (member.role === "Admin") adminProjectIds.push(p._id);
+    else memberOnlyProjectIds.push(p._id);
+  }
+
+  const orConditions = [];
+  if (adminProjectIds.length) {
+    orConditions.push({ project: { $in: adminProjectIds } });
+  }
+  if (memberOnlyProjectIds.length) {
+    orConditions.push({
+      project: { $in: memberOnlyProjectIds },
+      assignedTo: userId,
+    });
+  }
+
+  if (!orConditions.length) {
+    return { _id: { $exists: false } };
+  }
+  return { $or: orConditions };
+}
+
 // Get dashboard statistics
 const getDashboard = async (req, res) => {
   try {
@@ -11,19 +40,15 @@ const getDashboard = async (req, res) => {
       "members.user": userId,
     });
 
-    const projectIds = projects.map((p) => p._id);
+    const visibleTaskFilter = buildVisibleTaskFilterForUser(projects, userId);
 
-    // Total tasks
-    const totalTasks = await Task.countDocuments({
-      project: { $in: projectIds },
-    });
+    // Total tasks (only tasks this user is allowed to see)
+    const totalTasks = await Task.countDocuments(visibleTaskFilter);
 
     // Tasks by status
     const tasksByStatus = await Task.aggregate([
       {
-        $match: {
-          project: { $in: projectIds },
-        },
+        $match: visibleTaskFilter,
       },
       {
         $group: {
@@ -47,7 +72,7 @@ const getDashboard = async (req, res) => {
     // Overdue tasks
     const now = new Date();
     const overdueTasks = await Task.find({
-      project: { $in: projectIds },
+      ...visibleTaskFilter,
       dueDate: { $lt: now },
       status: { $ne: "Done" },
     })
@@ -59,7 +84,7 @@ const getDashboard = async (req, res) => {
     const tasksPerUser = await Task.aggregate([
       {
         $match: {
-          project: { $in: projectIds },
+          ...visibleTaskFilter,
           assignedTo: { $ne: null },
         },
       },
@@ -93,16 +118,16 @@ const getDashboard = async (req, res) => {
 
     // User's assigned tasks
     const userAssignedTasks = await Task.countDocuments({
+      ...visibleTaskFilter,
       assignedTo: userId,
-      project: { $in: projectIds },
     });
 
-    // User's assigned tasks by status
+    // User's assigned tasks by status (among tasks they can see)
     const userTasksByStatus = await Task.aggregate([
       {
         $match: {
+          ...visibleTaskFilter,
           assignedTo: userId,
-          project: { $in: projectIds },
         },
       },
       {
@@ -164,15 +189,21 @@ const getProjectDashboard = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // Total tasks in project
-    const totalTasks = await Task.countDocuments({ project: projectId });
+    const userMember = project.members.find(
+      (member) => member.user.toString() === userId
+    );
+    const isAdmin = userMember?.role === "Admin";
+    const projectTaskFilter = isAdmin
+      ? { project: projectId }
+      : { project: projectId, assignedTo: userId };
+
+    // Total tasks in project (members: only assigned)
+    const totalTasks = await Task.countDocuments(projectTaskFilter);
 
     // Tasks by status
     const tasksByStatus = await Task.aggregate([
       {
-        $match: {
-          project: projectId,
-        },
+        $match: projectTaskFilter,
       },
       {
         $group: {
@@ -195,7 +226,7 @@ const getProjectDashboard = async (req, res) => {
     // Overdue tasks
     const now = new Date();
     const overdueTasks = await Task.find({
-      project: projectId,
+      ...projectTaskFilter,
       dueDate: { $lt: now },
       status: { $ne: "Done" },
     })
@@ -206,7 +237,7 @@ const getProjectDashboard = async (req, res) => {
     const tasksPerUser = await Task.aggregate([
       {
         $match: {
-          project: projectId,
+          ...projectTaskFilter,
           assignedTo: { $ne: null },
         },
       },
