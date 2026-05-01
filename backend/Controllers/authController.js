@@ -14,31 +14,25 @@ const signup = async (req, res) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
 
-    // Validation
-    if (!name || !email || !password || !confirmPassword) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists with this email" });
+      return res
+        .status(400)
+        .json({ message: "User already exists with this email" });
     }
 
     // Hash password
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
-    // Create new user
-    const user = new User({ name, email, password: hashedPassword });
+    // Create new user with Member role by default
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role: "Member",
+    });
     await user.save();
 
     // Generate token
@@ -51,6 +45,7 @@ const signup = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -62,11 +57,6 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
-    }
 
     // Find user
     const user = await User.findOne({ email });
@@ -90,6 +80,7 @@ const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {

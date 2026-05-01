@@ -5,6 +5,9 @@ require("dotenv").config();
 require("./Models/db");
 
 const authRoutes = require("./Routes/authRoutes");
+const projectRoutes = require("./Routes/projectRoutes");
+const taskRoutes = require("./Routes/taskRoutes");
+const dashboardRoutes = require("./Routes/dashboardRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -16,6 +19,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/ping", (req, res) => {
   res.send("PONG");
