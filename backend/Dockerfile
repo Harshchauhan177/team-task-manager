@@ -19,6 +19,7 @@ COPY --from=builder /app/node_modules ./node_modules
 
 # Copy application code
 COPY . .
+COPY ../frontend/build ./frontend/build
 
 # Expose port
 EXPOSE 8080
