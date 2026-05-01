@@ -1,0 +1,373 @@
+.dashboard-page {
+  width: 100%;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  position: relative;
+  background: var(--surface, #fff);
+  padding: 20px 18px 18px;
+  border-radius: var(--radius, 12px);
+  box-shadow: var(--shadow-md, 0 4px 20px rgba(15, 23, 42, 0.08));
+  border: 1px solid var(--border, #e2e8f0);
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, #4f46e5);
+}
+
+.stat-card--projects {
+  --accent: #4f46e5;
+}
+.stat-card--tasks {
+  --accent: #0ea5e9;
+}
+.stat-card--mine {
+  --accent: #10b981;
+}
+.stat-card--overdue {
+  --accent: #f59e0b;
+}
+
+.stat-card__icon {
+  display: block;
+  font-size: 1.35rem;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.stat-card h3 {
+  margin: 0 0 6px;
+  color: var(--text-muted, #64748b);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-number {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text, #0f172a);
+  line-height: 1.1;
+}
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--surface, #fff);
+  padding: 22px;
+  border-radius: var(--radius, 12px);
+  box-shadow: var(--shadow, 0 1px 3px rgba(15, 23, 42, 0.06));
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.panel--error {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.panel--error .panel__title {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+}
+
+.panel--error p {
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.panel__heading {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.panel__hint {
+  margin: 0 0 18px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.panel__subheading {
+  margin: 24px 0 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.status-section {
+  grid-column: 1 / -1;
+}
+
+.status-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.status-pill {
+  flex: 1;
+  min-width: 100px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-pill--todo {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+.status-pill--progress {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+.status-pill--done {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.status-pill--compact {
+  padding: 10px 12px;
+}
+
+.status-pill__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-pill__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.task-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.task-item {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fafafa;
+}
+
+.task-item:last-child {
+  margin-bottom: 0;
+}
+
+.task-item h4 {
+  margin: 0 0 4px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.task-item__project {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.task-item__due {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.priority-tag {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.priority-tag--high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.priority-tag--medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+.priority-tag--low {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.user-task-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.user-task-item {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #fafafa;
+}
+
+.user-task-item:last-child {
+  margin-bottom: 0;
+}
+
+.user-task-item__name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.task-count-badge {
+  background: var(--primary-soft, rgba(79, 70, 229, 0.1));
+  color: var(--primary, #4f46e5);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.empty-hint {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.btn-primary {
+  background: var(--primary, #4f46e5);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover, #4338ca);
+}
+
+@media (max-width: 768px) {
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+
+  .status-breakdown {
+    flex-direction: column;
+  }
+
+  .status-pill {
+    min-width: 0;
+  }
+}
+
+/* Access & Permissions Section */
+.access-info-section {
+  grid-column: 1 / -1;
+}
+
+.access-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.access-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm, 8px);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid;
+}
+
+.access-card--admin {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.access-card--member {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.access-card__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.access-card__content {
+  flex: 1;
+}
+
+.access-card__label {
+  margin: 0 0 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.access-card__desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.task-item__content {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .access-breakdown {
+    grid-template-columns: 1fr;
+  }
+}
