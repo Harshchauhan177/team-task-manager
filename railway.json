@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "team-task-manager",
+    "description": "Full-stack Task Management Application",
+    "services": {
+      "backend": {
+        "name": "backend",
+        "description": "Express.js API Server",
+        "source": {
+          "type": "github",
+          "ref": "main"
+        },
+        "variables": {
+          "PORT": "8080",
+          "NODE_ENV": "production",
+          "MONGO_URI": "",
+          "JWT_SECRET": ""
+        }
+      },
+      "frontend": {
+        "name": "frontend",
+        "description": "React.js Web Application",
+        "source": {
+          "type": "github",
+          "ref": "main"
+        },
+        "variables": {
+          "REACT_APP_API_URL": ""
+        }
+      }
+    }
+  }
+}
