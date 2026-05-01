@@ -1,12 +1,18 @@
 const Task = require("../Models/Task");
 const Project = require("../Models/Project");
 
-/** Tasks a user may see: all tasks in projects where they are Admin; only assigned tasks where they are Member. */
+/** Tasks a user may see: all tasks in projects where they are Admin or Creator; only assigned tasks where they are Member. */
 function buildVisibleTaskFilterForUser(projects, userId) {
   const adminProjectIds = [];
   const memberOnlyProjectIds = [];
 
   for (const p of projects) {
+    // Creators can see all tasks (treat as admin)
+    if (p.creator.toString() === userId) {
+      adminProjectIds.push(p._id);
+      continue;
+    }
+    
     const member = p.members.find((m) => m.user.toString() === userId);
     if (!member) continue;
     if (member.role === "Admin") adminProjectIds.push(p._id);
@@ -35,9 +41,12 @@ const getDashboard = async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Get all projects for the user
+    // Get all projects where user is a member OR is the creator
     const projects = await Project.find({
-      "members.user": userId,
+      $or: [
+        { "members.user": userId },
+        { creator: userId }
+      ]
     });
 
     const visibleTaskFilter = buildVisibleTaskFilterForUser(projects, userId);
@@ -116,17 +125,18 @@ const getDashboard = async (req, res) => {
       },
     ]);
 
-    // User's assigned tasks
+    // User's assigned tasks - get project IDs where user can see tasks
+    const projectIds = projects.map(p => p._id);
     const userAssignedTasks = await Task.countDocuments({
-      ...visibleTaskFilter,
+      project: { $in: projectIds },
       assignedTo: userId,
     });
 
-    // User's assigned tasks by status (among tasks they can see)
+    // User's assigned tasks by status
     const userTasksByStatus = await Task.aggregate([
       {
         $match: {
-          ...visibleTaskFilter,
+          project: { $in: projectIds },
           assignedTo: userId,
         },
       },
@@ -180,19 +190,20 @@ const getProjectDashboard = async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Check if user is a member
+    // Check if user is a member or creator
     const isMember = project.members.some(
       (member) => member.user.toString() === userId
     );
+    const isCreator = project.creator.toString() === userId;
 
-    if (!isMember) {
+    if (!isMember && !isCreator) {
       return res.status(403).json({ message: "Access denied" });
     }
 
     const userMember = project.members.find(
       (member) => member.user.toString() === userId
     );
-    const isAdmin = userMember?.role === "Admin";
+    const isAdmin = isCreator || userMember?.role === "Admin";
     const projectTaskFilter = isAdmin
       ? { project: projectId }
       : { project: projectId, assignedTo: userId };

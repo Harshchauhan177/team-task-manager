@@ -92,19 +92,20 @@ const getProjectTasks = async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Check if user is a member of this project
+    // Check if user is a member OR creator of this project
     const isMember = project.members.some(
       (member) => member.user.toString() === userId
     );
+    const isCreator = project.creator.toString() === userId;
 
-    if (!isMember) {
+    if (!isMember && !isCreator) {
       return res.status(403).json({ message: "Access denied" });
     }
 
     const userMember = project.members.find(
       (member) => member.user.toString() === userId
     );
-    const isAdmin = userMember?.role === "Admin";
+    const isAdmin = isCreator || userMember?.role === "Admin";
     const taskQuery = isAdmin
       ? { project: projectId }
       : { project: projectId, assignedTo: userId };
@@ -138,20 +139,21 @@ const getTaskById = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // Check if user is a member of the project
+    // Check if user is a member or creator of the project
     const project = await Project.findById(task.project._id);
     const isMember = project.members.some(
       (member) => member.user.toString() === userId
     );
+    const isCreator = project.creator.toString() === userId;
 
-    if (!isMember) {
+    if (!isMember && !isCreator) {
       return res.status(403).json({ message: "Access denied" });
     }
 
     const userMember = project.members.find(
       (member) => member.user.toString() === userId
     );
-    const isAdmin = userMember?.role === "Admin";
+    const isAdmin = isCreator || userMember?.role === "Admin";
     const isAssigned =
       task.assignedTo && task.assignedTo._id
         ? task.assignedTo._id.toString() === userId
@@ -189,13 +191,14 @@ const updateTask = async (req, res) => {
     const userMember = project.members.find(
       (member) => member.user.toString() === userId
     );
+    const isCreator = project.creator.toString() === userId;
 
-    if (!userMember) {
+    if (!userMember && !isCreator) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // Only Admin or assigned user can update task
-    const isAdmin = userMember.role === "Admin";
+    // Only Admin/Creator or assigned user can update task
+    const isAdmin = isCreator || userMember?.role === "Admin";
     const isAssigned = task.assignedTo?.toString() === userId;
 
     if (!isAdmin && !isAssigned) {
@@ -213,7 +216,7 @@ const updateTask = async (req, res) => {
     if (!isAdmin && isAssigned) {
       if (status) task.status = status;
     } else {
-      // Admin can update all fields
+      // Admin/Creator can update all fields
       if (title !== undefined) task.title = title;
       if (description !== undefined) task.description = description;
       if (status) task.status = status;
@@ -296,10 +299,14 @@ const getUserAssignedTasks = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const memberProjects = await Project.find({
-      "members.user": userId,
+    // Get all projects where user is a member OR creator
+    const projects = await Project.find({
+      $or: [
+        { "members.user": userId },
+        { creator: userId }
+      ]
     }).select("_id");
-    const projectIds = memberProjects.map((p) => p._id);
+    const projectIds = projects.map((p) => p._id);
 
     const tasks = await Task.find({
       assignedTo: userId,
